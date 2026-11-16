@@ -15,10 +15,11 @@ def _to_pil(frame_bgr):
     return Image.fromarray(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
 
 
-def sample_frames(data: bytes, n=0, every_s=2.0, max_n=24, min_n=4):
+def sample_frames(data: bytes, n=0, every_s=0.5, max_n=30, min_n=4):
     """Khung hinh cach deu -> list PIL.Image RGB. Khong doc duoc -> ValueError.
 
-    n=0 (mac dinh): tu chon theo do dai clip, ~1 khung moi every_s giay, kep trong [min_n, max_n].
+    n=0 (mac dinh): 2 khung/giay, toi da max_n khung -> clip dai hon 15s thi tu giam mat do
+    (30 khung trai deu ca clip) de khong no so lan goi model.
     Clip de bai dai tu 0.5s den vai phut nen so khung CO DINH la sai o ca hai dau:
     clip 369s voi 8 khung thi moi 46 giay moi lay 1 -> bo sot gan het canh.
     """
@@ -99,11 +100,11 @@ if __name__ == '__main__':
     assert len(sample_frames(data, 1)) == 1
     assert len(sample_frames(make_mp4(3), 8)) <= 8          # video ngan hon so khung yeu cau
 
-    # n=0: tu chon theo do dai, ~1 khung moi 2 giay, kep trong [4, 24]
-    assert len(sample_frames(make_mp4(60))) == 4            # 6s -> round(3)=3 -> kep len min 4
-    assert len(sample_frames(make_mp4(300))) == 15          # 30s -> 15 khung
-    assert len(sample_frames(make_mp4(10))) == 4            # 1s -> min 4, khong lay 1 khung
-    assert len(sample_frames(make_mp4(900))) == 24          # 90s -> kep xuong max 24
+    # n=0: 2 khung/giay, kep trong [4, 30]
+    assert len(sample_frames(make_mp4(60))) == 12           # 6s -> 12 khung (2/giay)
+    assert len(sample_frames(make_mp4(150))) == 30          # 15s -> 30 khung, van du 2/giay
+    assert len(sample_frames(make_mp4(10))) == 4            # 1s -> 2 khung nhung kep len min 4
+    assert len(sample_frames(make_mp4(300))) == 30          # 30s -> kep xuong 30 (1/giay)
 
     for bad in (b'', b'khong phai video'):
         try:

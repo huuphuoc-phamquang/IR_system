@@ -118,7 +118,9 @@ trang viewer dùng): `/evaluation/{id}/state` và `/evaluation/{id}/template/tas
   Điểm = tổng sim. Đúng dạng của task `tkis` (mở đầu / sau đó / cuối cùng). Bỏ trống C thì thành A → B.
   Ảnh nhỏ ở góc thẻ kết quả là cảnh B khớp nhất.
 - **Tìm bằng ảnh/video**: nút **Tải ảnh/video…**, kéo thả file vào trang, hoặc `Ctrl+V` ảnh chụp màn hình.
-  Video thì lấy 8 khung cách đều, điểm = **max** trên các khung (clip nhiều cảnh, khớp 1 cảnh là đủ).
+  Video: lấy **2 khung/giây**, tối đa 30 khung — clip dài quá 15s thì tự giãn mật độ ra (30 khung
+  trải đều cả clip). Mỗi khung so với toàn bộ 427.601 keyframe, điểm = **max** trên các khung
+  (clip nhiều cảnh, khớp 1 cảnh là đủ). Encode theo lô nên 30 khung mất ~240 ms (GPU) / ~1,0 s (CPU).
 - **Tối đa mỗi video**: tránh để một video chiếm hết top-K.
 - Bấm vào ảnh để mở chi tiết: xem video (tự tua tới trước keyframe 2 giây), keyframe lân cận, **Tìm cảnh
   tương tự** (dùng chính ảnh đó làm truy vấn), **Lưu làm GT**, Copy `video,frame`. Phím ← → để chuyển kết quả, Esc để đóng.

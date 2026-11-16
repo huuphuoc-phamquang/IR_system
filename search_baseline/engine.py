@@ -120,24 +120,31 @@ class SearchEngine:
     def similar(self, kf_id, k=100, max_per_video=None):
         return self._rank(self.id_scores(kf_id), k, max_per_video)
 
-    def image_scores(self, img):
-        """Truy van bang anh ben ngoai (vd anh chup clip muc tieu tren DRES).
+    def image_scores(self, imgs, chunk=32):
+        """Diem cua moi keyframe voi 1 hoac nhieu anh ngoai, lay MAX tren cac anh.
 
         Dung chinh image tower cua model da tao index nen vector cung khong gian voi features.npy.
+        Encode theo lo: 100 khung trong 1 lan goi model nhanh hon han 100 lan goi roi le.
+        Cat lo de khong giu ma tran [so_keyframe x so_khung] qua to trong bo nho.
         """
+        if not isinstance(imgs, (list, tuple)):
+            imgs = [imgs]
+        best = None
         with self._lock, torch.no_grad():
-            e = self.model.encode_image(self.preprocess(img).unsqueeze(0).to(self.device))
-        q = F.normalize(e.float(), dim=-1)[0].to(self.feats.dtype)
-        return (self.feats @ q).float().cpu().numpy()
+            for s in range(0, len(imgs), chunk):
+                batch = torch.stack([self.preprocess(im) for im in imgs[s:s + chunk]]).to(self.device)
+                e = F.normalize(self.model.encode_image(batch).float(), dim=-1).to(self.feats.dtype)
+                sc = (self.feats @ e.T).float().amax(dim=1).cpu().numpy()
+                best = sc if best is None else np.maximum(best, sc)
+        return best
 
     def search_image(self, img, k=100, max_per_video=None):
         return self._rank(self.image_scores(img), k, max_per_video)
 
     def search_frames(self, imgs, k=100, max_per_video=None):
-        """Nhieu khung hinh cua cung 1 clip. Diem = MAX tren cac khung, khong phai trung binh:
+        """Nhieu khung cua cung 1 clip. Diem = MAX tren cac khung, khong phai trung binh:
         clip de bai thuong nhieu canh, chi can keyframe khop 1 canh la dung."""
-        scores = np.maximum.reduce([self.image_scores(im) for im in imgs])
-        return self._rank(scores, k, max_per_video)
+        return self._rank(self.image_scores(imgs), k, max_per_video)
 
     def temporal(self, texts, window_s=30.0, k=100, n_cand=3000, max_per_video=None):
         """Chuoi su kien theo thu tu (tkis thuong co 3 cau: mo dau / sau do / cuoi cung).
