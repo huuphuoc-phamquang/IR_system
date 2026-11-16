@@ -10,8 +10,11 @@ câu truy vấn (tiếng Anh) ─► CLIP text encoder ─► cosine với mọi
 | File | Việc |
 |---|---|
 | `build_index.py` | gộp `features-*/*.npy` và `map-keyframes/*.csv` thành 1 index, đồng thời ghi vị trí byte của từng ảnh trong file `.tar` (đọc ảnh không cần giải nén) |
-| `engine.py` | tìm theo văn bản, tìm cảnh tương tự, truy vấn sự kiện A → B, keyframe lân cận |
+| `engine.py` | tìm theo văn bản/ảnh/clip, tìm cảnh tương tự, chuỗi sự kiện A → B → C, keyframe lân cận |
 | `app.py` + `static/index.html` | web UI: xem kết quả, xem lại video đúng thời điểm, lưu đáp án (GT), xuất CSV |
+| `dres.py` | nộp kết quả lên DRES: `login` → evaluation `ACTIVE` → `submit` |
+| `capture.py` | hỏi DRES mỗi 5s, có task mới thì lưu đề bài (text + clip) vào `runs/tasks/` |
+| `video.py` | lấy khung hình cách đều từ một clip, để tìm bằng cả clip thay vì 1 ảnh |
 | `evaluate.py` | đo Recall@K và MRR trên bộ câu hỏi có đáp án, để so sánh các lần cải tiến |
 
 Baseline tìm bằng phép nhân ma trận (brute force) trên GPU hoặc CPU. Vài trăm nghìn keyframe chỉ mất
@@ -42,7 +45,7 @@ Video trùng tên giữa các thư mục thì lấy thư mục đầu tiên và 
 3. Mở web UI (thêm `--videos` để xem lại video; bỏ đi nếu không có video trên máy):
 
 ```bash
-python app.py --index D:/data/HCMAI24_keyframes/index --videos D:/4_Code/IR/batch1
+python app.py --index D:/data/HCMAI24_keyframes/index --videos D:/4_Code/IR/Data
 ```
 
 Sau đó mở http://localhost:8000. Trên server Ubuntu không có GPU, app tự chạy bằng CPU. Thêm `--host 0.0.0.0`
@@ -52,12 +55,22 @@ Sau đó mở http://localhost:8000. Trên server Ubuntu không có GPU, app t�
 
 Mật khẩu nên để trong biến môi trường, đừng gõ vào dòng lệnh (nó vào history của shell):
 
+```powershell
+# PowerShell -- `set VAR=x` KHONG tao bien moi truong, phai dung $env:
+$env:DRES_URL  = "https://aiclub.uit.edu.vn/dres"   # phần trước /evaluation/... trên thanh địa chỉ
+$env:DRES_USER = "team_cua_ban"
+$env:DRES_PASS = "..."
+python app.py --index D:/4_Code/IR/Data/keyframes/index --videos D:/4_Code/IR/Data --port 8123
+```
+
 ```bash
-export DRES_URL=https://dres-cua-ban-to-chuc    # Windows: set DRES_URL=...
+# Linux / macOS
+export DRES_URL=https://aiclub.uit.edu.vn/dres
 export DRES_USER=team_cua_ban
 export DRES_PASS=...
-python app.py --index D:/data/HCMAI24_keyframes/index --videos D:/4_Code/IR/Data/batch1
 ```
+
+Tự bắt đề bài (cửa sổ riêng, cùng 3 biến trên): `python capture.py` — xem mục "Bắt đề bài" bên dưới.
 
 Lúc khởi động app in ra `DRES: <url>`, và dòng info trên UI hiện "DRES đã nối". Mở chi tiết một
 keyframe rồi bấm **Nộp lên DRES** — có hộp xác nhận vì nộp rồi không rút lại được. Không cấu hình
@@ -65,12 +78,36 @@ thì nút bị tắt, phần còn lại của app chạy bình thường.
 
 `dres.py` lo 3 call: `login` → `client/evaluation/list` (lấy cái `ACTIVE`) → `submit/{id}`. `start`/`end`
 tính bằng milliseconds **theo fps của chính video đó** (lấy từ `meta.csv`), vì batch2 trộn 25/30fps.
-Toast hiện nguyên văn phản hồi của DRES; `412` thường là chưa có task đang chạy hoặc cần thêm `taskName`.
+Kết quả chấm hiện cạnh nút và trên thanh trạng thái, **không tự biến mất**: `✅ ĐÚNG` / `❌ SAI` /
+`⏳ CHƯA CHẤM` (HTTP 202) / `⚠️ KHÔNG CHẤM ĐƯỢC`, kèm `video @ frame` đã nộp. `412` thường là chưa có
+task đang chạy hoặc cần thêm `taskName`.
+
+## Bắt đề bài
+
+```powershell
+python capture.py            # hoi DRES moi 5s; --interval, --out de doi
+python capture.py --selftest # kiem tra code, khong can mang
+```
+
+Task mới thì lưu vào `runs/tasks/<tên task>/`:
+
+| Loại | File | Dùng thế nào |
+|---|---|---|
+| `tkis` | `query.txt` (3 câu), `hint.json` | dịch sang tiếng Anh → 3 ô **Chuỗi sự kiện A → B → C** |
+| `vkis` | `00.mp4` (clip mục tiêu) | kéo thả file vào trang, hoặc `Ctrl+V` ảnh chụp màn hình |
+
+Chỉ gọi `GET`, không nộp gì. Dùng 2 endpoint không có trong `oas-client.json` (lấy từ API đầy đủ mà
+trang viewer dùng): `/evaluation/{id}/state` và `/evaluation/{id}/template/task/{tid}/hint`.
 
 ## Web UI
 - **Văn bản**: mô tả cảnh **bằng tiếng Anh**. CLIP ViT-B-32 gần như không hiểu tiếng Việt.
-- **Sự kiện A → B**: tìm keyframe khớp A mà trong vòng N giây sau đó, cùng video, có cảnh khớp B.
-  Điểm = sim(A) + max sim(B). Ảnh nhỏ ở góc thẻ kết quả là cảnh B khớp nhất.
+- **Dịch Việt→Anh**: tích ô này thì câu tiếng Việt được dịch (Google Translate) rồi mới encode, và
+  ô nhập bị ghi đè bằng bản tiếng Anh để bạn thấy CLIP thực sự nhận câu nào.
+- **Chuỗi sự kiện A → B → C**: mỗi sự kiện sau phải nằm trong N giây sau sự kiện trước, cùng video.
+  Điểm = tổng sim. Đúng dạng của task `tkis` (mở đầu / sau đó / cuối cùng). Bỏ trống C thì thành A → B.
+  Ảnh nhỏ ở góc thẻ kết quả là cảnh B khớp nhất.
+- **Tìm bằng ảnh/video**: nút **Tải ảnh/video…**, kéo thả file vào trang, hoặc `Ctrl+V` ảnh chụp màn hình.
+  Video thì lấy 8 khung cách đều, điểm = **max** trên các khung (clip nhiều cảnh, khớp 1 cảnh là đủ).
 - **Tối đa mỗi video**: tránh để một video chiếm hết top-K.
 - Bấm vào ảnh để mở chi tiết: xem video (tự tua tới trước keyframe 2 giây), keyframe lân cận, **Tìm cảnh
   tương tự** (dùng chính ảnh đó làm truy vấn), **Lưu làm GT**, Copy `video,frame`. Phím ← → để chuyển kết quả, Esc để đóng.
@@ -88,7 +125,8 @@ cùng định dạng:
 {"id": "q1", "query": "...", "video": "L01_V001", "start": 1200, "end": 1500}
 ```
 
-`start`/`end` là khoảng `frame_idx` đúng. Thêm `"query_b"` và `"window"` cho câu hỏi dạng A → B.
+`start`/`end` là khoảng `frame_idx` đúng. Thêm `"query_b"`, `"query_c"` và `"window"` cho câu hỏi
+dạng chuỗi sự kiện. `frame_idx` phải là khung hình trong video gốc, **không phải** cột `n` hay `pts_time`.
 
 ```bash
 python evaluate.py --index D:/data/HCMAI24_keyframes/index --queries queries/gt_ui.jsonl --out runs/baseline.csv
