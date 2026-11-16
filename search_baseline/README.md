@@ -95,6 +95,17 @@ Task mới thì lưu vào `runs/tasks/<tên task>/`:
 |---|---|---|
 | `tkis` | `query.txt` (3 câu), `hint.json` | dịch sang tiếng Anh → 3 ô **Chuỗi sự kiện A → B → C** |
 | `vkis` | `00.mp4` (clip mục tiêu) | kéo thả file vào trang, hoặc `Ctrl+V` ảnh chụp màn hình |
+| `qakis` | `query.txt` (3 câu, kết thúc bằng "Đáp án của câu hỏi là gì?") | tìm cảnh như tkis, **đọc đáp án trên màn hình**, rồi điền vào ô đáp án trong drawer |
+
+### qakis: nộp chữ, không phải vị trí video
+
+Mở chi tiết một keyframe, ô dưới nút Nộp đã điền sẵn mẫu `<đáp án>-<video>-<ms>`. Thay `<đáp án>`
+bằng đáp án thật rồi bấm **Nộp lên DRES** — nó gửi `{"text": "..."}` thay vì `mediaItemName`.
+Để trống ô đó (hoặc bấm ↺ rồi không sửa) thì nộp như bình thường. Nút ↺ điền lại mẫu theo keyframe đang xem.
+
+> Hai nguồn của ban tổ chức **không khớp** về format: `submit_dres.js` dùng `<đáp án>-<video>-<ms>`,
+> còn `dres_submit_demo.py` dùng `QA-<đáp án>-<video>-<ms>`. Vì vậy ô này cho sửa tự do — xác nhận
+> format với ban tổ chức trước vòng thi thật.
 
 Chỉ gọi `GET`, không nộp gì. Dùng 2 endpoint không có trong `oas-client.json` (lấy từ API đầy đủ mà
 trang viewer dùng): `/evaluation/{id}/state` và `/evaluation/{id}/template/task/{tid}/hint`.
