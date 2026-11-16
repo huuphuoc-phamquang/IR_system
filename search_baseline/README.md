@@ -143,11 +143,17 @@ python collect_gt.py --index ... --tasks runs/tasks --out runs/gt_new   # chi ta
 | `runs/tasks_done/` | task đã xong, có `target_*.mp4` |
 | `runs/gt/` | `gt.jsonl`, `summary.csv`, `skip.txt`, ảnh keyframe đáp án |
 
+Vòng thi thử chạy lại cùng một đề nhiều lần; mỗi lần DRES cấp `taskId` mới nên `capture.py`
+tạo thêm thư mục. `collect_gt.py` **gom theo `taskId` trong `hint.json`** (id của template, ổn định)
+và giữ bản tốt nhất — ưu tiên bản có clip đáp án, rồi nhiều câu hint hơn, rồi mới nhất.
+Thực tế: 71 thư mục trên đĩa → 35 task thật.
+
 **Phải liếc qua các ảnh `.jpg`.** Điểm cao không đảm bảo đúng: clip đáp án hay mở đầu bằng cảnh
 studio/MC dùng chung cho mọi bản tin, khớp 0.96 với hàng trăm bản tin khác. Đã thử lọc tự động
 bằng margin (top1 trừ video khác tốt nhất) — **không tách được** cái sai khỏi cái đúng
-(sai +0.0117 vs đúng +0.0186). Thấy ảnh nào sai thì thêm task id vào `runs/gt/skip.txt`,
-chạy lại sẽ bỏ qua.
+(sai +0.0117 vs đúng +0.0186). Thấy ảnh nào sai thì thêm id vào `runs/gt/skip.txt`, chạy lại
+sẽ bỏ qua. **Nên ghi `taskId` của template** (cột `tid` trong `summary.csv`) chứ không phải tên
+thư mục — tên thư mục đổi mỗi lần đề chạy lại, câu sai sẽ lẻn về dưới id khác.
 
 Số đo nền (9 câu, tol 3s, ViT-B-32):
 

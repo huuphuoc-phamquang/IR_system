@@ -34,16 +34,33 @@ def task_rows(tasks_dirs, eng, min_score):
         tasks_dirs = [tasks_dirs]
     dirs = sorted({d for t in tasks_dirs for d in glob.glob(os.path.join(t, '*'))},
                   key=os.path.basename)
+    # DRES chay lai cung mot de -> taskId moi moi lan -> capture.py tao them thu muc.
+    # 'taskId' trong hint.json la id cua TEMPLATE, on dinh -> gom theo no, giu ban tot nhat
+    # (uu tien co clip dap an, roi nhieu cau hint hon, roi moi nhat).
+    groups = {}
     for d in dirs:
         if not os.path.isdir(d):
             continue
+        hj = os.path.join(d, 'hint.json')
+        try:
+            tid = json.load(open(hj, encoding='utf-8')).get('taskId')
+        except Exception:
+            tid = None
+        key = tid or os.path.basename(d)
+        qp = os.path.join(d, 'query.txt')
+        n_lines = len([l for l in open(qp, encoding='utf-8').read().splitlines() if l.strip()])             if os.path.exists(qp) else 0
+        rank = (bool(glob.glob(os.path.join(d, 'target_*.mp4'))), n_lines, os.path.getmtime(d))
+        if key not in groups or rank > groups[key][0]:
+            groups[key] = (rank, d)
+    tid_of = {d: k for k, (_, d) in groups.items()}
+    for _, d in sorted(groups.values(), key=lambda x: os.path.basename(x[1])):
         task = os.path.basename(d)
         qp = os.path.join(d, 'query.txt')
         text = open(qp, encoding='utf-8').read().strip() if os.path.exists(qp) else ''
         lines = [l.strip() for l in text.splitlines() if l.strip()]
         kind = 'vkis' if not lines else ('qakis' if 'áp án' in text else 'tkis')
         targets = sorted(glob.glob(os.path.join(d, 'target_*.mp4')))
-        row = {'task': task, 'kind': kind, 'n_hint': len(lines), 'has_target': bool(targets),
+        row = {'task': task, 'tid': tid_of.get(d), 'kind': kind, 'n_hint': len(lines), 'has_target': bool(targets),
                'score': None, 'video': None, 'frame_idx': None, 'pts_time': None,
                'same_in_top10': None, 'solved': False, 'lines': lines}
         if targets:
@@ -98,7 +115,8 @@ def main():
     skip.discard('')
     rows = list(task_rows(a.tasks, eng, a.min_score))
     for r in rows:
-        if r['task'][:8] in skip or r['task'] in skip:
+        ids = {r['task'], r['task'][:8], r.get('tid'), (r.get('tid') or '')[:8]}
+        if ids & skip:
             r['solved'] = False
             r['note'] = 'bo qua theo skip.txt'
 
@@ -127,7 +145,7 @@ def main():
             f.write(json.dumps(it, ensure_ascii=False) + '\n')
 
     cols = ['task', 'kind', 'n_hint', 'has_target', 'score', 'margin', 'same_in_top10', 'solved',
-            'video', 'frame_idx', 'pts_time', 'start', 'end', 'span_s', 'note']
+            'video', 'frame_idx', 'pts_time', 'start', 'end', 'span_s', 'tid', 'note']
     with open(os.path.join(a.out, 'summary.csv'), 'w', newline='', encoding='utf-8') as f:
         w = csv.DictWriter(f, fieldnames=cols, extrasaction='ignore')
         w.writeheader()
