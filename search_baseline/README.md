@@ -169,6 +169,20 @@ Số đo nền (10 câu, tol 3s, ViT-B-32, index 427k keyframe):
 
 Dịch là từ **0% lên 60%**. Với ViT-B-32 thì tiếng Việt không phải "kém" mà là bằng không.
 
+**vkis** (`gt_vkis.jsonl`, 8 câu) đo riêng vì không có chữ: truy vấn bằng clip đề bài `00.mp4`,
+đáp án giải từ `target_*.mp4` — hai file khác nhau nên không vòng vo.
+
+| | R@1 | MRR |
+|---|---|---|
+| vkis · tìm bằng clip · khung đúng | **1.000** | 1.000 |
+
+```bash
+python evaluate.py --index <index> --queries runs/gt/gt_vkis.jsonl --tol 3
+```
+
+Tức khi đáp án nằm trong dữ liệu, tìm bằng clip **không trượt câu nào**. Nút thắt của vkis là
+đáp án có nằm trong bộ hay không, không phải chất lượng tìm kiếm.
+
 `start`/`end` của GT lấy bằng **độ dài clip đáp án** quanh khung khớp nhất, không phải một khung:
 khung khớp nhất với clip thường rơi vào cảnh nổi bật (câu B hoặc C), trong khi truy vấn chuỗi
 trả về khung của câu A — cách nhau hàng chục giây. Lấy một khung thì "khung đúng" ra 0.000 dù

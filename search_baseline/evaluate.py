@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from engine import SearchEngine
+from video import sample_frames
 
 KS = (1, 5, 10, 20, 50, 100)
 
@@ -56,16 +57,23 @@ def main():
     qs = load_queries(a.queries)
     rows = []
     for q in qs:
+        q.setdefault('query', '')
         if q['video'] not in fps_of:
             print(f'  !! bo qua {q.get("id")}: video {q["video"]} khong co trong index')
             continue
-        if q.get('query_b'):
+        if q.get('clip'):          # vkis: truy van bang clip de bai, khong co chu
+            if not os.path.exists(q['clip']):
+                print(f'  !! bo qua {q.get("id")}: khong thay clip {q["clip"]}')
+                continue
+            res = eng.search_frames(sample_frames(open(q['clip'], 'rb').read()), a.k,
+                                    a.max_per_video or None)
+        elif q.get('query_b'):
             res = eng.temporal([q['query'], q.get('query_b'), q.get('query_c')],
                                q.get('window', 30.0), a.k, max_per_video=a.max_per_video or None)
         else:
             res = eng.search(q['query'], a.k, a.max_per_video or None)
         fr, vr = first_hit(res, q, a.tol * fps_of[q['video']])
-        rows.append({'id': q.get('id'), 'query': q['query'], 'video': q['video'],
+        rows.append({'id': q.get('id'), 'query': q.get('query') or os.path.basename(q.get('clip', '')), 'video': q['video'],
                      'rank': fr, 'video_rank': vr,
                      'top1': f'{res[0]["video"]}@{res[0]["frame_idx"]}' if res else ''})
 

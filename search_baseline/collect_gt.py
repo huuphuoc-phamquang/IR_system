@@ -200,6 +200,24 @@ def main():
         with open(img, 'wb') as f:
             f.write(eng.image_bytes(r['kf_id']))
 
+    # vkis khong co chu -> GT rieng, truy van bang chinh clip de bai (00.mp4).
+    # Khong vong vo: dap an dung tu target_*.mp4, con truy van la 00.mp4 -- hai file khac nhau.
+    vkis = []
+    for r in rows:
+        if not r['solved'] or r['lines']:
+            continue
+        cand = [c for t in a.tasks for c in glob.glob(os.path.join(t, r['task'], '00.mp4'))]
+        if not cand:
+            continue
+        vkis.append({'id': (r.get('tid') or r['task'])[:8], 'clip': cand[0].replace(os.sep, '/'),
+                     'video': r['video'], 'start': r['start'], 'end': r['end'],
+                     'span_s': r['span_s'], 'score': r['score'], 'kind': 'vkis',
+                     'task_dir': r['task'], 'source': 'practice'})
+    with open(os.path.join(a.out, 'gt_vkis.jsonl'), 'w', encoding='utf-8') as f:
+        f.write('// vkis: truy van bang clip de bai 00.mp4, dap an giai tu target_*.mp4' + chr(10))
+        for it in vkis:
+            f.write(json.dumps(it, ensure_ascii=False) + chr(10))
+
     with open(os.path.join(a.out, 'gt.jsonl'), 'w', encoding='utf-8') as f:
         f.write('// Sinh boi collect_gt.py tu vong thi thu. query = cau tieng Anh? KHONG -- van la\n'
                 '// tieng Viet, phai dich truoc khi do, hoac bat o "Dich Viet->Anh" tren UI.\n')
@@ -239,6 +257,7 @@ def main():
     print(f'  co clip dap an : {sum(1 for r in rows if r["has_target"])}')
     print(f'  giai duoc (>={a.min_score}): {len(solved)}')
     print(f'  thanh cau GT van ban: {len(gt)}  -> gt.jsonl')
+    print(f'  thanh cau GT bang clip: {len(vkis)}  -> gt_vkis.jsonl')
     print(f'  anh kiem tra   : {len(gt)} file .jpg')
     print(f'  bo qua (bo khac / skip.txt): {sum(1 for r in rows if r["has_target"] and not r["solved"])}')
     if skip:
