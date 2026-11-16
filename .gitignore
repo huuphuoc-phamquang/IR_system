@@ -1,0 +1,14 @@
+# Du lieu: hang tram GB (video, keyframe, features, index)
+Data/
+*.zip
+
+# Repo clone de tham khao, co .git rieng
+retrievalBaseline/
+Client-Examples/
+
+# Ket qua chay: chua de bai DRES that va clip muc tieu -> khong cong khai
+search_baseline/runs/
+search_baseline/queries/gt_ui.jsonl
+
+__pycache__/
+*.pyc
