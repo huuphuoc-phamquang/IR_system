@@ -126,6 +126,36 @@ trang viewer dùng): `/evaluation/{id}/state` và `/evaluation/{id}/template/tas
   tương tự** (dùng chính ảnh đó làm truy vấn), **Lưu làm GT**, Copy `video,frame`. Phím ← → để chuyển kết quả, Esc để đóng.
 - **Xuất CSV**: top 100 dạng `L01_V001,12345` (video, frame_idx).
 
+## Bộ GT từ vòng thi thử
+
+`capture.py` lưu cả clip **đáp án** (`target_*.mp4`) sau khi mỗi task kết thúc. `collect_gt.py`
+dùng chính engine để tìm clip đáp án đó trong index -> ra `video, frame_idx`, tức một câu GT
+hoàn chỉnh mà không phải gõ tay.
+
+```powershell
+python collect_gt.py --index D:/4_Code/IR/Data/keyframes/index          # ca kho -> tong bo GT
+python collect_gt.py --index ... --tasks runs/tasks --out runs/gt_new   # chi task moi
+```
+
+| Thư mục | Gì ở trong |
+|---|---|
+| `runs/tasks/` | task mới, `capture.py` còn đang theo dõi (chưa có đáp án) |
+| `runs/tasks_done/` | task đã xong, có `target_*.mp4` |
+| `runs/gt/` | `gt.jsonl`, `summary.csv`, `skip.txt`, ảnh keyframe đáp án |
+
+**Phải liếc qua các ảnh `.jpg`.** Điểm cao không đảm bảo đúng: clip đáp án hay mở đầu bằng cảnh
+studio/MC dùng chung cho mọi bản tin, khớp 0.96 với hàng trăm bản tin khác. Đã thử lọc tự động
+bằng margin (top1 trừ video khác tốt nhất) — **không tách được** cái sai khỏi cái đúng
+(sai +0.0117 vs đúng +0.0186). Thấy ảnh nào sai thì thêm task id vào `runs/gt/skip.txt`,
+chạy lại sẽ bỏ qua.
+
+Số đo nền (9 câu, tol 3s, ViT-B-32):
+
+| | R@1 video đúng |
+|---|---|
+| Câu tiếng Việt nguyên bản | **0.000** |
+| Cùng câu đó, dịch sang tiếng Anh | **0.571** |
+
 ## Đánh giá: làm trước khi cải tiến
 
 Không có bộ câu hỏi có đáp án thì không biết cải tiến nào thật sự có ích. Cách nhanh nhất để có bộ câu hỏi:
