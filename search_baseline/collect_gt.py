@@ -23,6 +23,7 @@ import csv
 import glob
 import json
 import os
+import shutil
 
 import cv2
 
@@ -105,6 +106,57 @@ def task_rows(tasks_dirs, eng, min_score):
         yield row
 
 
+def write_xlsx(path, gt, img_of):
+    """Mot dong moi cau, kem anh keyframe nhung trong o -> soat bang mat trong 1 file."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.drawing.image import Image as XLImage
+        from openpyxl.styles import Alignment, Font, PatternFill
+    except ImportError:
+        print('  (bo qua .xlsx: thieu openpyxl -- pip install openpyxl)')
+        return
+    from PIL import Image as PILImage
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'GT'
+    head = ['STT', 'id', 'SAI?', 'keyframe', 'video', 'start', 'end', 'span_s', 'score',
+            'Cau 1 (VI)', 'Cau 2 (VI)', 'Cau 3 (VI)', 'Cau 1 (EN)', 'Cau 2 (EN)', 'Cau 3 (EN)',
+            'thu muc task']
+    ws.append(head)
+    for c in ws[1]:
+        c.font = Font(bold=True)
+        c.fill = PatternFill('solid', fgColor='DDDDDD')
+    widths = [5, 11, 7, 34, 11, 8, 8, 8, 8, 46, 46, 46, 46, 46, 46, 38]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[chr(64 + i) if i <= 26 else 'A' + chr(38 + i)].width = w
+
+    tmp = os.path.join(os.path.dirname(path), '_thumbs')
+    os.makedirs(tmp, exist_ok=True)
+    for n, it in enumerate(gt, 1):
+        vi = (it.get('query_vi') or '').split(' | ')
+        en = it.get('en') or []
+        ws.append([n, it['id'], '', '', it['video'], it['start'], it['end'],
+                   it.get('span_s'), it.get('score'),
+                   *(vi + ['', '', ''])[:3], *(list(en) + ['', '', ''])[:3],
+                   it.get('task_dir', '')])
+        r = ws.max_row
+        ws.row_dimensions[r].height = 102          # ~136 px cho anh cao 135
+        for col in ('J', 'K', 'L', 'M', 'N', 'O'):
+            ws[f'{col}{r}'].alignment = Alignment(wrap_text=True, vertical='top')
+        src = img_of.get(it['id'])
+        if src and os.path.exists(src):
+            th = os.path.join(tmp, f"{it['id']}.png")
+            im = PILImage.open(src).convert('RGB')
+            im.thumbnail((240, 135))
+            im.save(th)
+            ws.add_image(XLImage(th), f'D{r}')
+    ws.freeze_panes = 'C2'
+    wb.save(path)
+    shutil.rmtree(tmp, ignore_errors=True)   # anh da nam trong .xlsx, khong can file tam
+    print(f'  -> {path}  ({len(gt)} dong, cot "SAI?" de ban danh dau)')
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--index', required=True)
@@ -161,6 +213,23 @@ def main():
         w.writeheader()
         for r in sorted(rows, key=lambda r: -(r['score'] or 0)):
             w.writerow(r)
+
+    # ghep ban dich tieng Anh neu da co, de Excel xem duoc ca hai thu tieng
+    en_path = os.path.join(a.out, 'gt_en.jsonl')
+    en_of = {}
+    if os.path.exists(en_path):
+        for line in open(en_path, encoding='utf-8'):
+            if line.startswith('//'):
+                continue
+            j = json.loads(line)
+            en_of[j['id']] = [j.get(k, '') for k in ('query', 'query_b', 'query_c')]
+    img_of = {}
+    for it in gt:
+        it['en'] = en_of.get(it['id'], [])
+        hit = glob.glob(os.path.join(a.out, f"{it['id']}_*.jpg"))
+        if hit:
+            img_of[it['id']] = hit[0]
+    write_xlsx(os.path.join(a.out, 'gt.xlsx'), gt, img_of)
 
     kinds = {}
     for r in rows:

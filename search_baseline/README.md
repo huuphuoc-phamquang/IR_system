@@ -141,7 +141,11 @@ python collect_gt.py --index ... --tasks runs/tasks --out runs/gt_new   # chi ta
 |---|---|
 | `runs/tasks/` | task mới, `capture.py` còn đang theo dõi (chưa có đáp án) |
 | `runs/tasks_done/` | task đã xong, có `target_*.mp4` |
-| `runs/gt/` | `gt.jsonl`, `summary.csv`, `skip.txt`, ảnh keyframe đáp án |
+| `runs/gt/` | `gt.xlsx`, `gt.jsonl`, `summary.csv`, `skip.txt`, ảnh keyframe đáp án |
+
+`gt.xlsx` là bản để soát bằng mắt: mỗi câu một dòng, **ảnh keyframe nhúng thẳng trong ô**, kèm
+3 câu tiếng Việt và 3 câu tiếng Anh cạnh nhau. Cột **SAI?** để trống cho bạn đánh dấu; sau đó
+chép cột `id` của những dòng đó vào `skip.txt` rồi chạy lại.
 
 Vòng thi thử chạy lại cùng một đề nhiều lần; mỗi lần DRES cấp `taskId` mới nên `capture.py`
 tạo thêm thư mục. `collect_gt.py` **gom theo `taskId` trong `hint.json`** (id của template, ổn định)
