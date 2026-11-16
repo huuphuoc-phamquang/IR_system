@@ -15,10 +15,15 @@ def _to_pil(frame_bgr):
     return Image.fromarray(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
 
 
-def sample_frames(data: bytes, n=8):
-    """n khung hinh cach deu nhau -> list PIL.Image RGB. Khong doc duoc -> ValueError."""
-    if n < 1:
-        raise ValueError('n phai >= 1')
+def sample_frames(data: bytes, n=0, every_s=2.0, max_n=24, min_n=4):
+    """Khung hinh cach deu -> list PIL.Image RGB. Khong doc duoc -> ValueError.
+
+    n=0 (mac dinh): tu chon theo do dai clip, ~1 khung moi every_s giay, kep trong [min_n, max_n].
+    Clip de bai dai tu 0.5s den vai phut nen so khung CO DINH la sai o ca hai dau:
+    clip 369s voi 8 khung thi moi 46 giay moi lay 1 -> bo sot gan het canh.
+    """
+    if n < 0:
+        raise ValueError('n phai >= 0')
     fd, path = tempfile.mkstemp(suffix='.mp4')   # cv2.VideoCapture can duong dan file
     os.close(fd)
     try:
@@ -29,6 +34,10 @@ def sample_frames(data: bytes, n=8):
             if not cap.isOpened():
                 raise ValueError('cv2 khong mo duoc video')
             total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+            if n == 0:
+                fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+                dur = total / fps if total > 0 else 0
+                n = max(min_n, min(max_n, round(dur / every_s))) if dur else min_n
             out = []
             if total > 0:
                 # lay giua moi doan -> tranh khung dau/cuoi hay bi den
@@ -75,7 +84,7 @@ if __name__ == '__main__':
         os.unlink(p)
         return data
 
-    data = make_mp4(60)
+    data = make_mp4(60)                       # 60 khung @10fps = 6 giay
     fr = sample_frames(data, 8)
     assert len(fr) == 8, len(fr)
     assert all(f.mode == 'RGB' and f.size == (160, 120) for f in fr)
@@ -89,6 +98,12 @@ if __name__ == '__main__':
 
     assert len(sample_frames(data, 1)) == 1
     assert len(sample_frames(make_mp4(3), 8)) <= 8          # video ngan hon so khung yeu cau
+
+    # n=0: tu chon theo do dai, ~1 khung moi 2 giay, kep trong [4, 24]
+    assert len(sample_frames(make_mp4(60))) == 4            # 6s -> round(3)=3 -> kep len min 4
+    assert len(sample_frames(make_mp4(300))) == 15          # 30s -> 15 khung
+    assert len(sample_frames(make_mp4(10))) == 4            # 1s -> min 4, khong lay 1 khung
+    assert len(sample_frames(make_mp4(900))) == 24          # 90s -> kep xuong max 24
 
     for bad in (b'', b'khong phai video'):
         try:

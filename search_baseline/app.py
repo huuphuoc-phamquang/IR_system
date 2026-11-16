@@ -72,11 +72,12 @@ def create_app(index_dir, data_dir=None, video_dir=None, gt_file='queries/gt_ui.
         return {'results': res, 'ms': round((time.time() - t) * 1000, 1)}
 
     @app.post('/api/search_image')
-    async def search_image(request: Request, k: int = 100, max_per_video: int = 0, frames_n: int = 8):
+    async def search_image(request: Request, k: int = 100, max_per_video: int = 0, frames_n: int = 0):
         """Body la byte anh HOAC video tho.
 
         vkis: dan anh chup clip muc tieu, hoac tha thang file 00.mp4 ma capture.py luu ve.
-        Video -> lay frames_n khung cach deu, diem = max tren cac khung.
+        Video -> lay khung cach deu (frames_n=0: tu chon theo do dai clip),
+        diem = MAX tren cac khung roi xep hang nhu truy van anh don.
         """
         raw = await request.body()
         if not raw:
