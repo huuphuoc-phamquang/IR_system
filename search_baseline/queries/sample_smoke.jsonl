@@ -1,0 +1,11 @@
+// Bo cau hoi nho de kiem tra code chay dung tren 4 video L01_V001-V004 (khong dung de danh gia that).
+{"id": "s01", "query": "a muddy brown flooded river with rushing water", "video": "L01_V001", "start": 2500, "end": 3250}
+{"id": "s02", "query": "a large block of yellow cheese", "video": "L01_V001", "start": 14000, "end": 14450}
+{"id": "s03", "query": "ballet dancers performing on a dark stage", "video": "L01_V001", "start": 23900, "end": 25100}
+{"id": "s04", "query": "sailing yachts racing on a rough grey sea", "video": "L01_V001", "start": 26400, "end": 27800}
+{"id": "s05", "query": "people holding cats at a pet exhibition", "video": "L01_V003", "start": 5600, "end": 6400}
+{"id": "s06", "query": "a white car with a smashed windshield parked next to a hillside", "video": "L01_V003", "start": 10900, "end": 11400}
+{"id": "s07", "query": "a crashed motorbike lying on the road at night", "video": "L01_V003", "start": 18400, "end": 18900}
+{"id": "s08", "query": "fireworks in a stadium during a night opening ceremony", "video": "L01_V003", "start": 27700, "end": 28400}
+{"id": "s09", "query": "a flower field lit by many light bulbs at night", "video": "L01_V003", "start": 8800, "end": 9500}
+{"id": "s10", "query": "a white car with a smashed windshield", "query_b": "police inspecting boxes of goods in a warehouse", "window": 60, "video": "L01_V003", "start": 10900, "end": 11400}
