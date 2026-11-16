@@ -24,8 +24,21 @@ import glob
 import json
 import os
 
+import cv2
+
 from engine import SearchEngine
 from video import sample_frames
+
+
+def clip_seconds(path):
+    """Do dai clip dap an (giay); 0 neu khong doc duoc."""
+    cap = cv2.VideoCapture(path)
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS) or 0
+        n = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
+        return n / fps if fps else 0.0
+    finally:
+        cap.release()
 
 
 def task_rows(tasks_dirs, eng, min_score):
@@ -74,21 +87,16 @@ def task_rows(tasks_dirs, eng, min_score):
             other = next((r for r in res if r['video'] != top['video']), None)
             # Doan dap an dai 10-25s, khong phai 1 khung. Lay khoang frame_idx cua cac keyframe
             # cung video co diem gan top -> GT la mot DOAN, danh gia moi co y nghia.
-            near = sorted((r for r in res
-                           if r['video'] == top['video'] and r['score'] >= top['score'] - 0.08),
-                          key=lambda r: r['pts_time'])
-            # chi giu doan LIEN MACH quanh top1: cung video + diem cao chua du, keyframe o doan
-            # khac cua cung ban tin se keo span len hang tram giay -> 'khung dung' thanh vo nghia
-            i0 = next(i for i, r in enumerate(near) if r['id'] == top['id'])
-            lo = hi = i0
-            while lo > 0 and near[lo]['pts_time'] - near[lo - 1]['pts_time'] <= 5.0:
-                lo -= 1
-            while hi + 1 < len(near) and near[hi + 1]['pts_time'] - near[hi]['pts_time'] <= 5.0:
-                hi += 1
-            block = near[lo:hi + 1]
-            row['start'] = min(r['frame_idx'] for r in block)
-            row['end'] = max(r['frame_idx'] for r in block)
-            row['span_s'] = round(block[-1]['pts_time'] - block[0]['pts_time'], 1)
+            # Dap an la CA DOAN clip, khong phai 1 khung. Khung khop nhat voi clip thuong roi
+            # vao canh noi bat nhat (cau B hoac C), trong khi truy van chuoi tra ve khung cua
+            # cau A -> cach nhau hang chuc giay. Lay ca doan dai bang clip quanh khung do.
+            dur = clip_seconds(targets[0]) or 20.0
+            t0, t1 = top['pts_time'] - dur, top['pts_time'] + dur
+            seg = [r for r in res if r['video'] == top['video'] and t0 <= r['pts_time'] <= t1]
+            row['start'] = min(r['frame_idx'] for r in seg)
+            row['end'] = max(r['frame_idx'] for r in seg)
+            row['span_s'] = round(max(r['pts_time'] for r in seg) - min(r['pts_time'] for r in seg), 1)
+            row['clip_s'] = round(dur, 1)
             row.update(score=round(top['score'], 4), video=top['video'], frame_idx=top['frame_idx'],
                        pts_time=top['pts_time'], kf_id=top['id'],
                        same_in_top10=sum(1 for r in res[:10] if r['video'] == top['video']),
@@ -124,8 +132,10 @@ def main():
     for r in rows:
         if not (r['solved'] and r['lines']):      # vkis khong co chu -> khong lam GT van ban duoc
             continue
-        item = {'id': r['task'][:8], 'query': r['lines'][0], 'video': r['video'],
-                'start': r['start'], 'end': r['end'], 'span_s': r['span_s'],
+        # id theo taskId cua template, on dinh qua cac lan chay lai; ten thu muc thi khong
+        item = {'id': (r.get('tid') or r['task'])[:8], 'task_dir': r['task'],
+                'query': r['lines'][0], 'video': r['video'],
+                'start': r['start'], 'end': r['end'], 'span_s': r['span_s'], 'clip_s': r.get('clip_s'),
                 'query_vi': ' | '.join(r['lines']), 'kind': r['kind'],
                 'score': r['score'], 'source': 'practice'}
         if len(r['lines']) > 1:
@@ -134,7 +144,7 @@ def main():
         if len(r['lines']) > 2:
             item['query_c'] = r['lines'][2]
         gt.append(item)
-        img = os.path.join(a.out, f"{r['task'][:8]}_{r['video']}_{r['frame_idx']}.jpg")
+        img = os.path.join(a.out, f"{item['id']}_{r['video']}_{r['frame_idx']}.jpg")
         with open(img, 'wb') as f:
             f.write(eng.image_bytes(r['kf_id']))
 
@@ -145,7 +155,7 @@ def main():
             f.write(json.dumps(it, ensure_ascii=False) + '\n')
 
     cols = ['task', 'kind', 'n_hint', 'has_target', 'score', 'margin', 'same_in_top10', 'solved',
-            'video', 'frame_idx', 'pts_time', 'start', 'end', 'span_s', 'tid', 'note']
+            'video', 'frame_idx', 'pts_time', 'start', 'end', 'span_s', 'clip_s', 'tid', 'note']
     with open(os.path.join(a.out, 'summary.csv'), 'w', newline='', encoding='utf-8') as f:
         w = csv.DictWriter(f, fieldnames=cols, extrasaction='ignore')
         w.writeheader()

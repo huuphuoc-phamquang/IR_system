@@ -155,12 +155,20 @@ bằng margin (top1 trừ video khác tốt nhất) — **không tách được*
 sẽ bỏ qua. **Nên ghi `taskId` của template** (cột `tid` trong `summary.csv`) chứ không phải tên
 thư mục — tên thư mục đổi mỗi lần đề chạy lại, câu sai sẽ lẻn về dưới id khác.
 
-Số đo nền (9 câu, tol 3s, ViT-B-32):
+Số đo nền (10 câu, tol 3s, ViT-B-32, index 427k keyframe):
 
-| | R@1 video đúng |
-|---|---|
-| Câu tiếng Việt nguyên bản | **0.000** |
-| Cùng câu đó, dịch sang tiếng Anh | **0.571** |
+| | R@1 | R@5 | R@20 | MRR |
+|---|---|---|---|---|
+| Tiếng Việt · video đúng | 0.000 | 0.000 | 0.000 | 0.000 |
+| **Tiếng Anh · video đúng** | **0.600** | 0.600 | 0.600 | 0.600 |
+| Tiếng Anh · khung đúng (±3s) | 0.400 | 0.500 | 0.600 | 0.455 |
+
+Dịch là từ **0% lên 60%**. Với ViT-B-32 thì tiếng Việt không phải "kém" mà là bằng không.
+
+`start`/`end` của GT lấy bằng **độ dài clip đáp án** quanh khung khớp nhất, không phải một khung:
+khung khớp nhất với clip thường rơi vào cảnh nổi bật (câu B hoặc C), trong khi truy vấn chuỗi
+trả về khung của câu A — cách nhau hàng chục giây. Lấy một khung thì "khung đúng" ra 0.000 dù
+hệ thống tìm đúng.
 
 ## Đánh giá: làm trước khi cải tiến
 
