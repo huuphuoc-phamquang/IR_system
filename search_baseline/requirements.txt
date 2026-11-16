@@ -1,0 +1,9 @@
+torch
+open_clip_torch
+numpy
+pandas
+fastapi
+uvicorn[standard]
+requests
+pillow
+opencv-python

@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HCMAI24 Search</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1c2026; --muted: #5f6873; --line: #dde1e6;
+  --accent: #2563eb; --accent-text: #ffffff; --chip: #eef2f7; --ok: #15803d; --warn: #b45309;
+  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --panel: #1a1f25; --text: #e6e9ed; --muted: #9aa4af; --line: #2c333b;
+    --accent: #5b8def; --accent-text: #0b0e12; --chip: #232a32; --ok: #4ade80; --warn: #fbbf24;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line);
+  background: var(--panel); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+header h1 { font-size: 16px; margin: 0; }
+header .info { color: var(--muted); font-size: 12px; }
+.query { padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.tabs { display: flex; gap: 4px; }
+.tabs button { border: 1px solid var(--line); background: var(--chip); color: var(--text); padding: 4px 10px;
+  border-radius: 6px; cursor: pointer; font: inherit; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row input[type=text] { flex: 1 1 280px; min-width: 0; }
+input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 8px; }
+input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+label.small { color: var(--muted); font-size: 12px; display: flex; gap: 4px; align-items: center; }
+.btn { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 6px;
+  padding: 6px 12px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: default; }
+.status { color: var(--muted); font-size: 12px; min-height: 18px; }
+main { padding: 12px 16px 40px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; cursor: pointer;
+  box-shadow: var(--shadow); position: relative; }
+.card:hover { border-color: var(--accent); }
+.card.sel { outline: 2px solid var(--accent); }
+.card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: var(--chip); }
+.card .cap { padding: 4px 6px; font-size: 12px; display: flex; justify-content: space-between; gap: 6px; }
+.card .cap b { font-weight: 600; }
+.card .rank { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,.65); color: #fff; font-size: 11px;
+  padding: 0 5px; border-radius: 4px; }
+.card .next { position: absolute; right: 4px; top: 4px; width: 38%; border: 2px solid #fff; border-radius: 4px; }
+.muted { color: var(--muted); }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+/* drawer */
+.drawer { position: fixed; inset: 0 0 0 auto; width: min(720px, 100vw); background: var(--panel);
+  border-left: 1px solid var(--line); box-shadow: var(--shadow); transform: translateX(100%); transition: transform .15s;
+  z-index: 10; display: flex; flex-direction: column; }
+.drawer.open { transform: none; }
+.drawer .head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;
+  border-bottom: 1px solid var(--line); gap: 8px; }
+.drawer .body { overflow: auto; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.drawer img.big, .drawer video { width: 100%; border-radius: 6px; background: #000; }
+.strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.strip img { height: 64px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; }
+.strip img.cur { border-color: var(--accent); }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 13px; }
+.kv span:nth-child(odd) { color: var(--muted); }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+.toast.show { opacity: 1; }
+@media (max-width: 600px) { .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>HCMAI24 Search · baseline</h1>
+  <span class="info" id="info">đang tải…</span>
+</header>
+
+<section class="query">
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-mode="text">Văn bản</button>
+    <button role="tab" aria-selected="false" data-mode="temporal">Chuỗi sự kiện A → B → C</button>
+  </div>
+  <div class="row">
+    <input type="text" id="qa" placeholder="Mô tả cảnh bằng tiếng Anh, vd: a firefighter spraying water on a burning house" autofocus>
+  </div>
+  <div class="row" id="rowB" hidden>
+    <input type="text" id="qb" placeholder="Sự kiện SAU đó, vd: people carrying furniture out of the house">
+    <label class="small">mỗi bước trong <input type="number" id="win" value="30" min="1" max="600" style="width:70px"> giây</label>
+  </div>
+  <div class="row" id="rowC" hidden>
+    <input type="text" id="qc" placeholder="Sự kiện CUỐI CÙNG (bỏ trống nếu chỉ có 2) — tkis thường có 3 câu">
+  </div>
+  <div class="row">
+    <label class="small">Top <select id="k"><option>100</option><option selected>200</option><option>500</option></select></label>
+    <label class="small">Tối đa mỗi video <select id="mpv"><option value="0">không giới hạn</option><option>3</option><option>5</option><option>10</option></select></label>
+    <label class="small" title="Dịch Việt → Anh bằng Google Translate trước khi tìm (task tkis)">
+      <input type="checkbox" id="vi"> Dịch Việt→Anh</label>
+    <button class="btn primary" id="go">Tìm</button>
+    <button class="btn" id="up" title="Tìm bằng file ảnh hoặc video (clip đề bài vkis)">Tải ảnh/video…</button>
+    <input type="file" id="upFile" accept="image/*,video/*" hidden>
+    <button class="btn" id="csv" disabled title="Xuất top 100 dạng video,frame_idx">Xuất CSV</button>
+    <span class="status" id="status"></span>
+    <span id="subStatus" style="font-weight:700"></span>
+  </div>
+</section>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">Nhập mô tả rồi bấm Enter, <b>Ctrl+V</b> một ảnh, hoặc <b>kéo thả</b> file ảnh/video (clip đề bài vkis) vào trang. Bấm vào một ảnh để xem chi tiết, xem video và tìm cảnh tương tự.</div>
+</main>
+
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="head">
+    <strong id="dTitle"></strong>
+    <div class="row">
+      <button class="btn" id="dPrev" title="Kết quả trước (←)">←</button>
+      <button class="btn" id="dNext" title="Kết quả sau (→)">→</button>
+      <button class="btn" id="dClose" title="Đóng (Esc)">✕</button>
+    </div>
+  </div>
+  <div class="body">
+    <img class="big" id="dImg" alt="">
+    <div class="kv" id="dKv"></div>
+    <div class="row">
+      <button class="btn primary" id="dSim">Tìm cảnh tương tự</button>
+      <button class="btn" id="dGt">Lưu làm GT cho câu truy vấn</button>
+      <button class="btn" id="dCopy">Copy video,frame</button>
+      <button class="btn" id="dSubmit" disabled>Nộp lên DRES</button>
+      <span id="dVerdict" style="font-weight:700;align-self:center"></span>
+    </div>
+    <div>
+      <div class="muted" style="font-size:12px;margin-bottom:4px">Keyframe lân cận trong cùng video</div>
+      <div class="strip" id="dStrip"></div>
+    </div>
+    <video id="dVideo" controls preload="none" hidden></video>
+    <div class="muted" id="dNoVideo" style="font-size:12px" hidden>Chạy app với <code>--videos</code> để xem lại video.</div>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let mode = 'text', results = [], cur = -1, info = {}, lastQuery = {a: '', b: '', c: ''};
+
+const fmtTime = s => { s = Math.max(0, s); const m = Math.floor(s / 60); return `${m}:${(s - m * 60).toFixed(1).padStart(4, '0')}`; };
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800); }
+// Ket qua nop khong duoc tu bien mat: toast 1.8s o day man hinh rat de truot khi dang nhin sang DRES.
+function setVerdict(msg, color) {
+  for (const id of ['dVerdict', 'subStatus']) {
+    const el = $(id);
+    if (el) { el.textContent = msg; el.style.color = color; }
+  }
+}
+async function api(url, opt) { const r = await fetch(url, opt); if (!r.ok) throw new Error((await r.text()) || r.status); return r.json(); }
+
+fetch('/api/info').then(r => r.json()).then(j => {
+  info = j;
+  $('info').textContent = `${j.n_keyframes.toLocaleString()} keyframe · ${j.n_videos} video · ${j.model} (${j.pretrained}) · ${j.device}`
+    + (j.n_videos_playable ? ` · xem được ${j.n_videos_playable} video` : '')
+    + (j.dres ? ' · DRES đã nối' : '');
+  $('dSubmit').disabled = !j.dres;
+  $('dSubmit').title = j.dres ? 'Nộp keyframe này lên DRES' : 'Chạy app với --dres-url/--dres-user/--dres-pass';
+});
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  mode = b.dataset.mode;
+  document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+  $('rowB').hidden = $('rowC').hidden = mode !== 'temporal';
+});
+
+async function run(url, label) {
+  $('status').textContent = 'đang tìm…'; $('go').disabled = true;
+  try {
+    const j = await api(url);
+    results = j.results; render();
+    $('status').textContent = `${label}: ${results.length} kết quả · ${j.ms} ms`;
+  } catch (e) { $('status').textContent = 'Lỗi: ' + e.message; }
+  $('go').disabled = false;
+}
+
+// Google Translate endpoint cong khai (CORS mo, khong can API key). Loi thi giu nguyen cau goc.
+async function toEnglish(s) {
+  if (!s) return s;
+  const u = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=en&dt=t&q=${encodeURIComponent(s)}`;
+  const r = await fetch(u);
+  if (!r.ok) throw new Error('dịch lỗi ' + r.status);
+  return (await r.json())[0].map(x => x[0]).join('');
+}
+
+async function search() {
+  let a = $('qa').value.trim(), b = $('qb').value.trim(), c = $('qc').value.trim();
+  if (!a) return;
+  if ($('vi').checked) {
+    $('status').textContent = 'đang dịch…';
+    try {
+      [a, b, c] = await Promise.all([a, b, c].map(toEnglish));
+      $('qa').value = a; if (b) $('qb').value = b; if (c) $('qc').value = c;  // thay CLIP nhan cau nao
+    } catch (e) { $('status').textContent = 'Lỗi dịch: ' + e.message; return; }
+  }
+  const k = $('k').value, mpv = $('mpv').value;
+  if (mode === 'temporal' && b) {
+    lastQuery = {a, b, c};
+    const q = `a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&c=${encodeURIComponent(c)}`;
+    run(`/api/temporal?${q}&window=${$('win').value}&k=${k}&max_per_video=${mpv}`,
+        c ? 'A → B → C' : 'A → B');
+  } else {
+    lastQuery = {a, b: '', c: ''};
+    run(`/api/search?q=${encodeURIComponent(a)}&k=${k}&max_per_video=${mpv}`, 'Văn bản');
+  }
+}
+$('go').onclick = search;
+['qa', 'qb', 'qc'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') search(); }));
+
+async function searchByFile(file, what) {
+  $('status').textContent = `đang tìm bằng ${what}…`; $('go').disabled = true;
+  try {
+    const r = await fetch(`/api/search_image?k=${$('k').value}&max_per_video=${$('mpv').value}`,
+      {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body: file});
+    if (!r.ok) throw new Error(await r.text());
+    const j = await r.json();
+    results = j.results; lastQuery = {a: '', b: '', c: ''}; render();
+    $('status').textContent = `${what}${j.frames > 1 ? ` (${j.frames} khung hình)` : ''}: `
+      + `${results.length} kết quả · ${j.ms} ms`;
+  } catch (err) { $('status').textContent = 'Lỗi: ' + err.message; }
+  $('go').disabled = false;
+}
+
+$('up').onclick = () => $('upFile').click();
+$('upFile').onchange = e => {
+  const f = e.target.files[0];
+  if (f) searchByFile(f, f.type.startsWith('video') ? 'video' : 'ảnh');
+  e.target.value = '';      // chon lai cung file van kich hoat change
+};
+
+// Keo tha file anh/video vao trang -> tim bang file do (vkis: tha thang <task>/00.mp4)
+document.addEventListener('dragover', e => { e.preventDefault(); });
+document.addEventListener('drop', e => {
+  const f = e.dataTransfer?.files?.[0];
+  if (!f) return;
+  e.preventDefault();
+  searchByFile(f, f.type.startsWith('video') || /\.(mp4|mov|mkv|webm)$/i.test(f.name) ? 'video' : 'ảnh');
+});
+
+// Ctrl+V anh bat ky vao trang -> tim bang chinh anh do (task vkis: chup clip muc tieu tren DRES)
+document.addEventListener('paste', async e => {
+  const items = [...(e.clipboardData?.items || [])];
+  const f = items.find(i => i.type.startsWith('image/'));
+  if (!f) {   // dung im lang: nguoi dung bam Ctrl+V ma khong thay gi thi khong doan duoc vi sao
+    if (items.length) $('status').textContent =
+      `Clipboard không có ảnh (có: ${items.map(i => i.type || i.kind).join(', ')}). Chụp bằng Win+Shift+S rồi Ctrl+V.`;
+    return;
+  }
+  e.preventDefault();
+  searchByFile(f.getAsFile(), 'ảnh dán');
+});
+
+function render() {
+  const g = $('grid'); g.innerHTML = '';
+  $('empty').hidden = results.length > 0;
+  $('empty').textContent = 'Không có kết quả.';
+  $('csv').disabled = !results.length;
+  const frag = document.createDocumentFragment();
+  results.forEach((r, i) => {
+    const c = document.createElement('div');
+    c.className = 'card'; c.tabIndex = 0;
+    c.innerHTML = `<span class="rank">${i + 1}</span><img loading="lazy" src="/img/${r.id}" alt="">`
+      + (r.next ? `<img class="next" loading="lazy" src="/img/${r.next.id}" title="B: ${fmtTime(r.next.pts_time)}" alt="">` : '')
+      + `<div class="cap"><b>${r.video}</b><span>${fmtTime(r.pts_time)}</span><span class="muted">${r.score?.toFixed(3) ?? ''}</span></div>`;
+    c.onclick = () => openDrawer(i);
+    c.onkeydown = e => { if (e.key === 'Enter') openDrawer(i); };
+    frag.appendChild(c);
+  });
+  g.appendChild(frag);
+  window.scrollTo({top: 0});
+}
+
+$('csv').onclick = () => {
+  const lines = results.slice(0, 100).map(r => `${r.video},${r.frame_idx}`).join('\n') + '\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines], {type: 'text/csv'}));
+  a.download = (lastQuery.a || 'query').slice(0, 40).replace(/[^\w]+/g, '_') + '.csv';
+  a.click();
+};
+
+async function openDrawer(i, item) {
+  cur = i;
+  const r = item || results[i];
+  document.querySelectorAll('.card').forEach((c, j) => c.classList.toggle('sel', j === i));
+  $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false');
+  $('dTitle').textContent = `${r.video} · ${fmtTime(r.pts_time)}` + (i >= 0 && !item ? ` · #${i + 1}` : '');
+  $('dImg').src = `/img/${r.id}`;
+  $('dKv').innerHTML = `<span>video</span><span>${r.video}</span><span>frame_idx</span><span>${r.frame_idx}</span>`
+    + `<span>thời điểm</span><span>${fmtTime(r.pts_time)} (${r.pts_time}s)</span>`
+    + (r.score != null ? `<span>score</span><span>${r.score}</span>` : '')
+    + (r.next ? `<span>B khớp nhất</span><span>${fmtTime(r.next.pts_time)} (frame ${r.next.frame_idx}, ${r.next.score})</span>` : '');
+  $('dSim').onclick = () => { closeDrawer(); run(`/api/similar/${r.id}?k=${$('k').value}&max_per_video=${$('mpv').value}`, `Tương tự ${r.video} @ ${fmtTime(r.pts_time)}`); };
+  $('dCopy').onclick = () => navigator.clipboard.writeText(`${r.video},${r.frame_idx}`).then(() => toast('Đã copy'));
+  $('dGt').onclick = async () => {
+    if (!lastQuery.a) return toast('Chưa có câu truy vấn văn bản');
+    try {
+      const j = await api('/api/gt', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({query: lastQuery.a, query_b: lastQuery.b, query_c: lastQuery.c,
+          video: r.video, frame_idx: r.frame_idx, pts_time: r.pts_time})});
+      toast('Đã lưu GT → ' + j.saved_to);
+    } catch (e) { toast('Lỗi: ' + e.message); }
+  };
+  $('dSubmit').onclick = async () => {
+    if (!confirm(`Nộp lên DRES: ${r.video} @ frame ${r.frame_idx} (${fmtTime(r.pts_time)})?\nKhông thể hoàn tác.`)) return;
+    $('dSubmit').disabled = true;
+    setVerdict('⏳ đang nộp…', 'var(--muted)');
+    try {
+      const j = await api('/api/submit', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({kf_id: r.id})});
+      // DRES: CORRECT | WRONG | INDETERMINATE | UNDECIDABLE; 202 = da nhan, cham sau
+      const v = j.submission || (j.http === 202 ? 'INDETERMINATE' : (j.status ? 'CORRECT' : 'WRONG'));
+      const look = {CORRECT: ['✅ ĐÚNG', '#16a34a'], WRONG: ['❌ SAI', '#dc2626'],
+                    INDETERMINATE: ['⏳ CHƯA CHẤM', '#ca8a04'], UNDECIDABLE: ['⚠️ KHÔNG CHẤM ĐƯỢC', '#ca8a04']};
+      const [txt, col] = look[v] || [`${v}`, '#ca8a04'];
+      setVerdict(`${txt} — ${r.video} @ ${r.frame_idx}${j.description ? ' · ' + j.description : ''}`, col);
+    } catch (e) { setVerdict('❌ Lỗi nộp: ' + e.message, '#dc2626'); }
+    $('dSubmit').disabled = !info.dres;
+  };
+  const v = $('dVideo');
+  if (info.n_videos_playable) {
+    v.hidden = false; $('dNoVideo').hidden = true;
+    const src = `/video/${r.video}`;
+    if (!v.src.endsWith(src)) v.src = src;
+    const seek = () => { v.currentTime = Math.max(0, r.pts_time - 2); };
+    if (v.readyState >= 1) seek(); else v.addEventListener('loadedmetadata', seek, {once: true});
+    v.preload = 'metadata';
+  } else { v.hidden = true; $('dNoVideo').hidden = false; }
+  const nb = await api(`/api/neighbors/${r.id}?r=8`);
+  const s = $('dStrip'); s.innerHTML = '';
+  nb.results.forEach(n => {
+    const im = document.createElement('img');
+    im.src = `/img/${n.id}`; im.title = fmtTime(n.pts_time); im.loading = 'lazy';
+    if (n.id === r.id) im.className = 'cur';
+    im.onclick = () => openDrawer(-1, n);
+    s.appendChild(im);
+  });
+  s.querySelector('.cur')?.scrollIntoView({inline: 'center', block: 'nearest'});
+}
+function closeDrawer() { $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden', 'true'); $('dVideo').pause(); }
+$('dClose').onclick = closeDrawer;
+$('dPrev').onclick = () => { if (cur > 0) openDrawer(cur - 1); };
+$('dNext').onclick = () => { if (cur >= 0 && cur < results.length - 1) openDrawer(cur + 1); };
+document.addEventListener('keydown', e => {
+  if (!$('drawer').classList.contains('open') || e.target.tagName === 'INPUT') return;
+  if (e.key === 'Escape') closeDrawer();
+  if (e.key === 'ArrowLeft') $('dPrev').click();
+  if (e.key === 'ArrowRight') $('dNext').click();
+});
+</script>
+</body>
+</html>
