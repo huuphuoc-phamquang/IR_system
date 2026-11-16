@@ -188,6 +188,29 @@ khung khớp nhất với clip thường rơi vào cảnh nổi bật (câu B ho
 trả về khung của câu A — cách nhau hàng chục giây. Lấy một khung thì "khung đúng" ra 0.000 dù
 hệ thống tìm đúng.
 
+## Tạo thêm GT bằng clip cắt ngẫu nhiên
+
+Vòng thi thử chỉ cho ~10 câu tkis. Muốn thêm thì cắt clip ngẫu nhiên từ chính bộ dữ liệu rồi
+nhờ công cụ khác (NotebookLM, Gemini…) **viết mô tả** — như vậy câu hỏi không bị thiên lệch theo
+chỗ mạnh của CLIP, điều sẽ xảy ra nếu người làm hệ thống tự viết.
+
+```powershell
+python cut_clips.py                                  # 10 clip 30s -> runs/gt_clips/
+#   dua clipNN.mp4 (hoac clipNN_sheet.jpg neu cong cu khong nhan video)
+#   + prompt_notebooklm.md  -> dan ket qua vao runs/gt_clips/mota.txt
+python descriptions_to_gt.py --text runs/gt_clips/mota.txt
+python evaluate.py --index <index> --queries runs/gt_clips/gt_clips.jsonl --tol 3
+```
+
+Clip đặt tên `clip01…clip10` chứ không theo tên video, đáp án để riêng trong `answers.csv` —
+công cụ viết mô tả không biết đáp án, và lúc bạn tự test cũng không bị lộ.
+
+Mỗi clip phải qua kiểm tra: tìm bằng chính nó ra đúng video nguồn, score ≥ 0.90 và ít nhất
+4/10 kết quả đầu cùng video. Bước này loại đoạn toàn cảnh studio/MC — thứ khớp 0.96 với hàng
+trăm bản tin khác và từng làm hỏng một câu GT.
+
+Mô tả sinh ra là **tiếng Việt**, nhớ bật ô "Dịch Việt→Anh" hoặc dịch trước khi đo.
+
 ## Đánh giá: làm trước khi cải tiến
 
 Không có bộ câu hỏi có đáp án thì không biết cải tiến nào thật sự có ích. Cách nhanh nhất để có bộ câu hỏi:

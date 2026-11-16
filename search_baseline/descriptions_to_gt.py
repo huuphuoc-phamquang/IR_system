@@ -38,7 +38,10 @@ def parse(text):
             cur = m.group(1).lower()
             out[cur] = []
             continue
-        if cur:
+        if re.match(r'(?:\*\*)?clip', line, re.I):
+            cur = None          # dong giong tieu de nhung khong doc duoc -> ket thuc clip hien tai
+            continue
+        if cur is not None and len(out[cur]) < 3:   # chi can 3 cau; chan van rac dinh vao cuoi
             out[cur].append(line)
     return {k: v for k, v in out.items() if v}
 
@@ -77,8 +80,6 @@ def main():
             item['window'] = a.window
         if len(lines) > 2:
             item['query_c'] = lines[2]
-        if len(lines) > 3:
-            skipped.append((clip, f'co {len(lines)} cau, chi lay 3 cau dau'))
         rows.append(item)
 
     with open(out, 'w', encoding='utf-8') as f:
