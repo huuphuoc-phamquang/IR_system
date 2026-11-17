@@ -217,6 +217,28 @@ trăm bản tin khác và từng làm hỏng một câu GT.
 
 Mô tả sinh ra là **tiếng Việt**, nhớ bật ô "Dịch Việt→Anh" hoặc dịch trước khi đo.
 
+## Bộ GT chuẩn hoá
+
+```powershell
+python standardize_gt.py --index D:/4_Code/IR/Data/keyframes/index
+```
+
+Gom mọi nguồn về `runs/gt_std/`, chia theo loại task, mỗi câu một thư mục:
+
+```
+vkis/v01/   query.mp4     clip đề bài DRES chiếu
+            answer.json   video gốc + khoảng frame và giây
+tkis/t01/   query.txt     3 đoạn mô tả (tiếng Việt)
+            query_en.txt  3 đoạn đã dịch
+            answer.mp4    đoạn video đáp án
+            answer.json   video gốc + khoảng frame và giây
+qakis/q01/  query.txt     câu hỏi
+            answer.json   answer_text để trống — phải đọc đáp án trên màn hình
+index.csv                 bảng tổng hợp cả 3 loại
+```
+
+Hiện có **8 vkis · 20 tkis · 1 qakis**, 283 MB. Chạy lại là ghi đè, nên cứ thêm câu rồi chạy lại.
+
 ## Đánh giá: làm trước khi cải tiến
 
 Không có bộ câu hỏi có đáp án thì không biết cải tiến nào thật sự có ích. Cách nhanh nhất để có bộ câu hỏi:
