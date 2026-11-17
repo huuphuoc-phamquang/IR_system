@@ -237,7 +237,14 @@ qakis/q01/  query.txt     câu hỏi
 index.csv                 bảng tổng hợp cả 3 loại
 ```
 
-Hiện có **8 vkis · 20 tkis · 1 qakis**, 283 MB. Chạy lại là ghi đè, nên cứ thêm câu rồi chạy lại.
+Hiện có **8 vkis · 20 tkis · 1 qakis**, 283 MB.
+
+Chạy lại được nhiều lần. Giá trị bạn **tự điền** vào `answer.json` (ví dụ `answer_text` của qakis,
+hay trường bạn tự thêm) được giữ nguyên: script đọc file cũ trước, khoá theo `task_id` chứ không
+theo tên thư mục — thêm câu mới làm `t01` trỏ sang câu khác thì sửa tay vẫn không dính nhầm.
+Giá trị script tính được luôn thắng giá trị cũ, nên nó chỉ bù vào chỗ còn trống.
+
+Lần chạy sau chỉ mất ~3 giây vì file nào đã đúng kích thước thì không chép lại.
 
 ## Đánh giá: làm trước khi cải tiến
 
