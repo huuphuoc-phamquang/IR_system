@@ -159,13 +159,19 @@ bằng margin (top1 trừ video khác tốt nhất) — **không tách được*
 sẽ bỏ qua. **Nên ghi `taskId` của template** (cột `tid` trong `summary.csv`) chứ không phải tên
 thư mục — tên thư mục đổi mỗi lần đề chạy lại, câu sai sẽ lẻn về dưới id khác.
 
-Số đo nền (10 câu, tol 3s, ViT-B-32, index 427k keyframe):
+Số đo nền — `runs/gt/gt_all_en.jsonl`, **20 câu tkis** (10 từ vòng thi thử + 10 do NotebookLM
+viết từ clip cắt ngẫu nhiên), tol 3s, ViT-B-32, index 427k keyframe:
 
-| | R@1 | R@5 | R@20 | MRR |
-|---|---|---|---|---|
-| Tiếng Việt · video đúng | 0.000 | 0.000 | 0.000 | 0.000 |
-| **Tiếng Anh · video đúng** | **0.600** | 0.600 | 0.600 | 0.600 |
-| Tiếng Anh · khung đúng (±3s) | 0.400 | 0.500 | 0.600 | 0.455 |
+| | R@1 | R@5 | R@20 | R@100 | MRR |
+|---|---|---|---|---|---|
+| Tiếng Việt · video đúng | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
+| **Tiếng Anh · video đúng** | **0.650** | 0.700 | 0.700 | 0.800 | 0.670 |
+| Tiếng Anh · khung đúng (±3s) | 0.400 | 0.650 | 0.700 | 0.800 | 0.498 |
+
+Tách theo nguồn (video đúng R@1): đề thi thử **0.600**, NotebookLM **0.700** — hai nguồn khó
+tương đương nhau, nên bộ tự sinh dùng thay thế được.
+
+4/20 câu trượt hẳn khỏi top-100; `vkis` (truy vấn bằng clip) thì 8/8.
 
 Dịch là từ **0% lên 60%**. Với ViT-B-32 thì tiếng Việt không phải "kém" mà là bằng không.
 
