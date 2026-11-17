@@ -41,6 +41,11 @@ label.small { color: var(--muted); font-size: 12px; display: flex; gap: 4px; ali
 .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .btn:disabled { opacity: .5; cursor: default; }
 .status { color: var(--muted); font-size: 12px; min-height: 18px; }
+.topvids { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 4px 0 10px; }
+.topvids .chip { border: 1px solid var(--line); background: var(--panel); border-radius: 6px;
+  padding: 4px 10px; font-size: 13px; font-weight: 600; }
+.topvids .chip b { margin-left: 6px; }
+.topvids .chip.top { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 main { padding: 12px 16px 40px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; cursor: pointer;
@@ -111,6 +116,7 @@ main { padding: 12px 16px 40px; }
 </section>
 
 <main>
+  <div class="topvids" id="topvids"></div>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty">Nhập mô tả rồi bấm Enter, <b>Ctrl+V</b> một ảnh, hoặc <b>kéo thả</b> file ảnh/video (clip đề bài vkis) vào trang. Bấm vào một ảnh để xem chi tiết, xem video và tìm cảnh tương tự.</div>
 </main>
@@ -272,6 +278,14 @@ document.addEventListener('paste', async e => {
 function render() {
   const g = $('grid'); g.innerHTML = '';
   $('empty').hidden = results.length > 0;
+  // dem so keyframe moi video trong top 20: video nao xuat hien day dac thi nhieu kha nang la dap an
+  const cnt = {};
+  results.slice(0, 20).forEach(r => { cnt[r.video] = (cnt[r.video] || 0) + 1; });
+  const ranked = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
+  $('topvids').innerHTML = ranked.length
+    ? '<span class="status">Top 20:</span>' + ranked.map(([v, n], i) =>
+        `<span class="chip${i === 0 && n > 1 ? ' top' : ''}">${v}<b>${n}</b></span>`).join('')
+    : '';
   $('empty').textContent = 'Không có kết quả.';
   $('csv').disabled = !results.length;
   const frag = document.createDocumentFragment();
