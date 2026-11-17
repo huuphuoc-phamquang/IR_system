@@ -246,6 +246,20 @@ Giá trị script tính được luôn thắng giá trị cũ, nên nó chỉ b�
 
 Lần chạy sau chỉ mất ~3 giây vì file nào đã đúng kích thước thì không chép lại.
 
+## Đổi model: encode lại keyframe
+
+`encode_features.py` encode lại keyframe bằng model open_clip khác, đọc ảnh thẳng từ
+`keyframes/<vid>.tar` và ghi vào thư mục đặc trưng riêng — bộ cũ không bị đụng tới.
+
+```bash
+pip install torch open_clip_torch transformers pillow numpy
+python encode_features.py --data <...>/Batch1 --model ViT-L-16-SigLIP2-384 --pretrained webli                           --feat-dir features-siglip2-l16-384
+python build_index.py --data <...>/Batch1 <...>/Batch2 --feat-dir features-siglip2-l16-384                       --model ViT-L-16-SigLIP2-384 --pretrained webli --out <...>/index_siglip2
+```
+
+Máy encode chỉ cần `keyframes/` và `map-keyframes/` của batch đó. Chạy lại thì bỏ qua video đã
+xong. Trên RTX 2000 Ada (8 GB) đạt khoảng 40 ảnh/giây.
+
 ## Đánh giá: làm trước khi cải tiến
 
 Không có bộ câu hỏi có đáp án thì không biết cải tiến nào thật sự có ích. Cách nhanh nhất để có bộ câu hỏi:
