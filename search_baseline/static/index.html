@@ -189,8 +189,13 @@ async function run(url, label) {
 }
 
 // Google Translate endpoint cong khai (CORS mo, khong can API key). Loi thi giu nguyen cau goc.
+// "Mo dau la hinh anh...", "Sau do la...", "Cuoi cung la..." la khuon mau cua de tkis, khong chua
+// hinh anh nao. De nguyen thi Google dich thanh "The scene opens with..." va keo R@1 tu 0.65 xuong 0.50.
+const LEAD_IN = /^\s*(mở đầu|sau đó|cuối cùng|tiếp theo|cảnh cuối cùng)(\s+(bản tin|cảnh quay))?(\s+là)?(\s+(hình ảnh|cảnh quay|cảnh|góc quay))?(\s+là)?\s*/i;
+
 async function toEnglish(s) {
   if (!s) return s;
+  s = s.replace(LEAD_IN, '');
   const u = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=en&dt=t&q=${encodeURIComponent(s)}`;
   const r = await fetch(u);
   if (!r.ok) throw new Error('dịch lỗi ' + r.status);
